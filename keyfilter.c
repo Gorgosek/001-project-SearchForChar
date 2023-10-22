@@ -14,7 +14,7 @@
 
 char query_next_char(char address[LINE_LENGTH], char *query);
 
-//TODO: Vyresit  redundance and shit
+//TODO: Vyresit  redundance and sort shit
 //// MEZERU neresit, Vice Argumentu neresit, Vypisovat vse velkymi pismeny, pocitaji se vsechny znaky z ascii
 //// Optimalizace a refaktorace a upresneni nazvu promennych :)
 
@@ -50,21 +50,29 @@ int main(int argc, char *argv[])
     }
 
     char enable[100];
+    char testOut;
 
     for(int i = 0; i < position; i++)
     {
-        enable[i] = query_next_char(addresses[i], query);
+        testOut = query_next_char(addresses[i], query);
+        if(testOut != 0 && testOut != CHAR_MIN && testOut != CHAR_MAX)
+        {
+            enable[i] = testOut;
+        }
     }
+    // Finishes the char
+    enable[position] = '\0';
 
     for(int i = 0; i < position; i++)
     {
         printf("%c",enable[i]);
     }
+        printf("\n");
 
     //printf("%s\n", query);
 
     //for(int i = 0; i < position; i++){
-    //    if(i < position)
+//    if(i < position)
     //    {
     //        printf("%d.:%s\n", i, addresses[i]);
     //    } else {
@@ -75,6 +83,9 @@ int main(int argc, char *argv[])
 
     return EXIT_SUCCESS;
 }
+
+
+    
 
 char query_next_char(char address[LINE_LENGTH], char *query){
 
