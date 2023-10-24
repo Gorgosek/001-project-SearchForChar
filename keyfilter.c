@@ -20,6 +20,7 @@ char query_next_char(char address[LINE_LENGTH], char *query);
 
 int main(int argc, char *argv[])
 {
+    bool isChar[256];
     char *query = "";
     if(argc > 2)
     {
@@ -62,30 +63,30 @@ int main(int argc, char *argv[])
     }
     // Finishes the char
     enable[position] = '\0';
-
-    for(int i = 0; i < position; i++)
-    {
-        printf("%c",enable[i]);
+    for(int i = 0; i < (int)strlen(enable); i++){
+       if(enable[i]){
+            isChar[(int)enable[i]] = true;
+        }
+        
     }
-        printf("\n");
+    char reTypeLetter;
+    for(int i = 0; i < 256; i++){
+        if(isChar[i] == true){
+            reTypeLetter = (char)i;
+            printf("%c", reTypeLetter);
+        }
+    }
 
-    //printf("%s\n", query);
-
-    //for(int i = 0; i < position; i++){
-//    if(i < position)
-    //    {
-    //        printf("%d.:%s\n", i, addresses[i]);
-    //    } else {
-    //        break;
-    //    }
-
-    //}
+ //   for(int i = 0; i < position; i++)
+ //   {
+ //       printf("%c",enable[i]);
+ //   }
+ //       printf("\n");
 
     return EXIT_SUCCESS;
 }
 
 
-    
 
 char query_next_char(char address[LINE_LENGTH], char *query){
 
