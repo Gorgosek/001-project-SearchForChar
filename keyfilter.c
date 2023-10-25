@@ -12,6 +12,7 @@
 #define NUM_OF_LINES 42
 #define LINE_LENGTH 100
 
+// Pridat makra 
 char query_next_char(char address[LINE_LENGTH], char *query);
 
 //TODO: Vyresit  redundance and sort shit
@@ -20,7 +21,7 @@ char query_next_char(char address[LINE_LENGTH], char *query);
 
 int main(int argc, char *argv[])
 {
-    bool isChar[256];
+    bool isChar[128];
     char *query = "";
     if(argc > 2)
     {
