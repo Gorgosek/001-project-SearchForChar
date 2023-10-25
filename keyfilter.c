@@ -17,9 +17,11 @@ char query_next_char(char address[LINE_LENGTH], char *query);
 //TODO: Vyresit  redundance and sort shit
 //// MEZERU neresit, Vice Argumentu neresit, Vypisovat vse velkymi pismeny, pocitaji se vsechny znaky z ascii
 //// Optimalizace a refaktorace a upresneni nazvu promennych :)
+/// TODO: CHECK if LINE_LENGTH == 100 or less
 
 int main(int argc, char *argv[])
 {
+    
     char *query = "";
     if(argc > 2)
     {
