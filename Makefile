@@ -1,13 +1,8 @@
-# Compiler and its options
-CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Werror
-SRC = keyfilter.c
-OUT = keyfilter
+CC=gcc
+CFLAGS=-std=c11 -Wall -Wextra -Werror
+keyfilter: keyfilter.c
+	$(CC) $(CFLAGS) keyfilter.c -o keyfilter
 
-all: $(OUT)
+test:
+	./test_keyfilter.sh
 
-$(OUT): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) -o $(OUT)
-
-clean:
-	rm -f $(OUT)
