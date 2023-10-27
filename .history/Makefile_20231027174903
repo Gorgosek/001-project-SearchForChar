@@ -1,13 +1,15 @@
-CFLAGS = -std=c11 -Wall -Wextra 
+CFLAGS = -std=c11 -Wall -Wextra -Werror
 CC = gcc
-TARGET = keyfilter
-SRC = keyfilter2.c
-OBJS = $(SRC:.c=.o)
+TARGET = keyfilter2.c
+OBJS = keyfilter2.o
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(OBJS) $(TARGET)
