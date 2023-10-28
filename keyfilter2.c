@@ -103,7 +103,7 @@ int output_relay(char input[])
             case ENABLE_NEXT:
                 includesChar[(int)result.lastChar] = true;
                 timesEnabled++;
-                enabledAtAddress = result.atAddress;
+                strcpy(enabledAtAddress, result.atAddress);
                 break;
             case PROCESS_FOUND:
                 printf("Found: %s\n", address);
