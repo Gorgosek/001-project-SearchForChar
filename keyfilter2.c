@@ -41,27 +41,21 @@ bool are_strings_equal(char address[], char input[])
 
     return areEqual && sameLength ? true : false;
 }
-// TODO make return int idk
-void process_address(char address[], char input[], char *result, char *cPtr, int *countMatches, int *outPutCase)
+
+int process_address(char address[], char input[], char *result, char *cPtr, int *countMatches)
 {
     if(address == NULL){
-        *outPutCase = ERROR;
-        return ;
+        return ERROR;
     }
-    static int timesCalled = 0;
     int inputLength = strlen(input);
     int addressLength = strlen(address);
-    int numOfDifferingChars = addressLength - inputLength;
-    if(numOfDifferingChars < 0){
+    int differenceInLength = addressLength - inputLength;
+    if(differenceInLength < 0){
         *cPtr = 0;
-        *outPutCase = NOT_FOUND;
-        return ;
+        return NOT_FOUND;
     } else if(strcmp(input, " ") == 0){
         inputLength = 0;
-        *outPutCase = ENABLE_NEXT;
     }
-
-    timesCalled++;
 
     if(strncasecmp(input, address, inputLength) == 0)
     {
@@ -69,22 +63,20 @@ void process_address(char address[], char input[], char *result, char *cPtr, int
 
         if(inputLength == addressLength){
             strcpy(result, address);
-            *outPutCase = FOUND;
-            return ;
+            return FOUND;
         }
         if(*countMatches == 1){
             strcpy(result, address);
             *cPtr = address[inputLength];
-            *outPutCase = CHECK_FOUND;
-            return ;
+            return CHECK_FOUND;
         }
         if(*countMatches > 1){
             *cPtr = address[inputLength];
             strcpy(result, " ");
-            *outPutCase = ENABLE_NEXT;
-            return ;
+            return ENABLE_NEXT;
         }
     }
+    return UNDEFINED;
 }
 
 char *check_args(char *argv, int argc)
@@ -120,13 +112,10 @@ int main(int argc, char *argv[])
     char c = 0;
     int countMatches = 0;
     int outPutCase = ERROR;
-//    for (int i = 0; i < CHARSET_SIZE; i++)
-//    {
-//        includesChar[i] = false;
-//    }
 
     while (1)
     {
+        //TODO weird return
         if(fgets(address, sizeof(address), stdin) == NULL || outPutCase == FOUND) {
             if((outPutCase == CHECK_FOUND || outPutCase == FOUND) != 0){
                 printf("Found: %s\n", result);
@@ -140,7 +129,7 @@ int main(int argc, char *argv[])
                 }
                 printf("\n");
             } else{
-                printf("Not Found\n") ;
+                printf("Not found\n") ;
 
             }
             return 0;
@@ -149,8 +138,11 @@ int main(int argc, char *argv[])
             // Remove endline at each end of a string
             address[strcspn(address, "\n")] = 0;
 
+            int tryProcessing = process_address(address, input, result, &c, &countMatches);
             // sets all desired variables to then later check
-            process_address(address, input, result, &c, &countMatches, &outPutCase);
+            if(tryProcessing != UNDEFINED){
+                outPutCase = tryProcessing;
+            }
             switch(outPutCase){
                 case ENABLE_NEXT:
                     includesChar[(int)c] = true;
@@ -165,5 +157,4 @@ int main(int argc, char *argv[])
             }
         }
     }
-    return 0;
 }
