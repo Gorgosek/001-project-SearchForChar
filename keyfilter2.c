@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <strings.h>
 
 // CONSTANTS definition
 #define EXIT_SUCCESS 0
@@ -12,26 +13,22 @@
 #define NUM_OF_LINES 42
 #define LINE_LENGTH 101
 #define CHARSET_SIZE 128
+#define FIRST_PRINTABLE_CHAR_INDEX 32 // Stop printing unwanted characters from the ascii table
 
 typedef enum{
     ENABLE_NEXT,
-    PROCESS_FOUND,
-    NOT_FOUND
+    FOUND,
+    NOT_FOUND,
+    CHECK_FOUND,
+    ERROR,
+    UNDEFINED
 } Outcome;
-
-typedef struct{
-    Outcome scenario;
-    char lastChar;
-    char *atAddress;
-} Result;
-
 
 void string_to_uppercase(char *str)
 {
     if (str != NULL)
     {
-        for (int i = 0; str[i]; i++)
-        {
+        for (int i = 0; str[i]; i++){
             str[i] = toupper((unsigned char)str[i]);
         }
     }
@@ -44,103 +41,50 @@ bool are_strings_equal(char address[], char input[])
 
     return areEqual && sameLength ? true : false;
 }
-
-Result process_address(char address[], char input[])
+// TODO make return int idk
+void process_address(char address[], char input[], char *result, char *cPtr, int *countMatches, int *outPutCase)
 {
-    int inputLastChar = (int)strlen(input);
-
-    if (are_strings_equal(address, input))
-    {
-        return (Result){PROCESS_FOUND, input[inputLastChar-1], address};
+    if(address == NULL){
+        *outPutCase = ERROR;
+        return ;
+    }
+    static int timesCalled = 0;
+    int inputLength = strlen(input);
+    int addressLength = strlen(address);
+    int numOfDifferingChars = addressLength - inputLength;
+    if(numOfDifferingChars < 0){
+        *cPtr = 0;
+        *outPutCase = NOT_FOUND;
+        return ;
+    } else if(strcmp(input, " ") == 0){
+        inputLength = 0;
+        *outPutCase = ENABLE_NEXT;
     }
 
-    int pos = 0;
-    while (toupper(input[pos]) == address[pos] || input[pos] == ' ')
+    timesCalled++;
+
+    if(strncasecmp(input, address, inputLength) == 0)
     {
-        pos++;
-        if (input[pos-1] == ' ' && pos-1 == 0)
-        {
-            return (Result){ENABLE_NEXT, address[pos-1], address};
+        (*countMatches)++;
+
+        if(inputLength == addressLength){
+            strcpy(result, address);
+            *outPutCase = FOUND;
+            return ;
         }
-        else if (toupper(input[pos]) != address[pos] && pos == inputLastChar)
-        {
-            //TODO zakopany pes asi typico uz mi jebe
-            if ((int)strlen(address) - 1 == inputLastChar)
-            {
-                return (Result){PROCESS_FOUND, address[pos], address};
-            }
-            return (Result){ENABLE_NEXT, address[pos], address};
+        if(*countMatches == 1){
+            strcpy(result, address);
+            *cPtr = address[inputLength];
+            *outPutCase = CHECK_FOUND;
+            return ;
         }
-    }
-
-    return (Result){NOT_FOUND, 0, address};
-}
-
-int output_relay(char input[])
-{
-    char address[LINE_LENGTH];
-    Result result;
-    bool includesChar[CHARSET_SIZE];
-
-    for (int i = 0; i < CHARSET_SIZE; i++)
-    {
-        includesChar[i] = false;
-    }
-
-    //string_to_uppercase(input);
-
-    int timesEnabled = 0;
-    char *enabledAtAddress;
-
-    while (fgets(address, sizeof(address), stdin) != NULL)
-    {
-        string_to_uppercase(address);
-        // Remove endline at each string
-        address[strcspn(address, "\n")] = 0;
-
-        result = process_address(address, input);
-        switch(result.scenario){
-            case ENABLE_NEXT:
-                includesChar[(int)result.lastChar] = true;
-                timesEnabled++;
-                //NOT like this
-                //strcpy(enabledAtAddress, result.atAddress);
-                enabledAtAddress = result.atAddress;
-                break;
-            case PROCESS_FOUND:
-                printf("Found: %s\n", address);
-                return 0;
-            break;
-            case NOT_FOUND:
-            break;
+        if(*countMatches > 1){
+            *cPtr = address[inputLength];
+            strcpy(result, " ");
+            *outPutCase = ENABLE_NEXT;
+            return ;
         }
     }
-
-    if (result.scenario == NOT_FOUND && timesEnabled == 0)
-    {
-        printf("Not found\n");
-        return 0;
-    }
-    else if(timesEnabled == 1){
-        printf("Found: %s\n", enabledAtAddress);
-    }
-    else if (timesEnabled > 0)
-    {
-        char enableChar;
-
-        printf("Enable: ");
-        for (int i = 0; i < CHARSET_SIZE; i++)
-        {
-            if (includesChar[i])
-            {
-                enableChar = (char)i;
-                printf("%c", enableChar);
-            }
-        }
-        printf("\n");
-    }
-
-    return 0;
 }
 
 char *check_args(char *argv, int argc)
@@ -169,5 +113,57 @@ int main(int argc, char *argv[])
     {
         return EXIT_FAILURE;
     }
-    output_relay(input);
+    char address[LINE_LENGTH];
+    bool includesChar[CHARSET_SIZE] = {false};
+
+    char result[LINE_LENGTH] = " ";
+    char c = 0;
+    int countMatches = 0;
+    int outPutCase = ERROR;
+//    for (int i = 0; i < CHARSET_SIZE; i++)
+//    {
+//        includesChar[i] = false;
+//    }
+
+    while (1)
+    {
+        if(fgets(address, sizeof(address), stdin) == NULL || outPutCase == FOUND) {
+            if((outPutCase == CHECK_FOUND || outPutCase == FOUND) != 0){
+                printf("Found: %s\n", result);
+            } else if(countMatches > 1){
+                printf("Enable: ");
+                for (int i = FIRST_PRINTABLE_CHAR_INDEX; i < CHARSET_SIZE - 1; i++)
+                {
+                    if(includesChar[i]){
+                        printf("%c", (char)i);
+                    }
+                }
+                printf("\n");
+            } else{
+                printf("Not Found\n") ;
+
+            }
+            return 0;
+        } else {
+            string_to_uppercase(address);
+            // Remove endline at each end of a string
+            address[strcspn(address, "\n")] = 0;
+
+            // sets all desired variables to then later check
+            process_address(address, input, result, &c, &countMatches, &outPutCase);
+            switch(outPutCase){
+                case ENABLE_NEXT:
+                    includesChar[(int)c] = true;
+                    break;
+                case CHECK_FOUND:
+                    includesChar[(int)c] = true;
+                    break;
+                case NOT_FOUND:
+                    break;
+                case ERROR:
+                    break;
+            }
+        }
+    }
+    return 0;
 }
