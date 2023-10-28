@@ -10,78 +10,154 @@
 #define EXIT_FAILURE 1
 
 #define NUM_OF_LINES 42
-#define LINE_LENGTH 100
-#define CHAR_SET_SIZE 128
+#define LINE_LENGTH 101
+#define CHARSET_SIZE 128
 
-void stringToupper(char *str)
+typedef enum{
+    ENABLE_NEXT,
+    PROCESS_FOUND,
+    NOT_FOUND
+} Outcome;
+
+typedef struct{
+    Outcome scenario;
+    char lastChar;
+    char *atAddress;
+} Result;
+
+
+void string_to_uppercase(char *str)
 {
-    for (int i = 0; str[i]; i++)
+    if (str != NULL)
     {
-        str[i] = toupper(str[i]);
-    }
-}
-char query_next_char(char *address, char *input)
-{
-
-    // Change to UPPERCASE for desired output
-    stringToupper(address);
-    stringToupper(input);
-
-    // Address == input
-    // FOUND
-    if (strcmp(input, address))
-    {
-        return CHAR_MAX;
-    }
-    int pos = 0;
-    while (pos < (int)strlen(address))
-    {
-        if (input[pos] != address[pos])
+        for (int i = 0; str[i]; i++)
         {
-            return address[pos];
+            str[i] = toupper((unsigned char)str[i]);
         }
-        pos++;
     }
-    // int upperBound = inputLength < addressLength ? inputLength : inputLength-1;
-
-    // for(int i = 0; i <= upperBound; i++)
-    //{
-         // Returns the first dissimilar UPPERCASE char from string address based on input
-    //     if(input[i] != address[i] && (i != 0 && input[i-1] == address[i-1]))
-    //     {
-    //         return address[i];
-
-    //    } else if(i == 0 && input == " "){
-
-    //        return address[i];
-    //    } else{
-
-    //        return CHAR_MIN;
-    //    }
-    //}
-
-    return CHAR_MIN;
 }
 
-char *check_args(char input[], int argc)
+bool are_strings_equal(char address[], char input[])
 {
+    bool areEqual = strcmp(input, address) == 0;
+    bool sameLength = strlen(input) == strlen(address) ? true : false;
+
+    return areEqual && sameLength ? true : false;
+}
+
+Result process_address(char address[], char input[])
+{
+    int inputLastChar = (int)strlen(input);
+
+    if (are_strings_equal(address, input))
+    {
+        return (Result){PROCESS_FOUND, input[inputLastChar-1], address};
+    }
+
+    int pos = 0;
+    while (toupper(input[pos]) == address[pos] || input[pos] == ' ')
+    {
+        pos++;
+        if (input[pos-1] == ' ' && pos-1 == 0)
+        {
+            return (Result){ENABLE_NEXT, address[pos-1], address};
+        }
+        else if (toupper(input[pos]) != address[pos] && pos == inputLastChar)
+        {
+            //TODO zakopany pes asi typico uz mi jebe
+            if ((int)strlen(address) - 1 == inputLastChar)
+            {
+                return (Result){PROCESS_FOUND, address[pos], address};
+            }
+            return (Result){ENABLE_NEXT, address[pos], address};
+        }
+    }
+
+    return (Result){NOT_FOUND, 0, address};
+}
+
+int output_relay(char input[])
+{
+    char address[LINE_LENGTH];
+    Result result;
+    bool includesChar[CHARSET_SIZE];
+
+    for (int i = 0; i < CHARSET_SIZE; i++)
+    {
+        includesChar[i] = false;
+    }
+
+    //string_to_uppercase(input);
+
+    int timesEnabled = 0;
+    char *enabledAtAddress;
+
+    while (fgets(address, sizeof(address), stdin) != NULL)
+    {
+        string_to_uppercase(address);
+        // Remove endline at each string
+        address[strcspn(address, "\n")] = 0;
+
+        result = process_address(address, input);
+        switch(result.scenario){
+            case ENABLE_NEXT:
+                includesChar[(int)result.lastChar] = true;
+                timesEnabled++;
+                enabledAtAddress = result.atAddress;
+                break;
+            case PROCESS_FOUND:
+                printf("Found: %s\n", address);
+                return 0;
+            break;
+            case NOT_FOUND:
+            break;
+        }
+    }
+
+    if (result.scenario == NOT_FOUND && timesEnabled == 0)
+    {
+        printf("Not found\n");
+        return 0;
+    }
+    else if(timesEnabled == 1){
+        printf("Found: %s\n", enabledAtAddress);
+    }
+    else if (timesEnabled > 0)
+    {
+        char enableChar;
+
+        printf("Enable: ");
+        for (int i = 0; i < CHARSET_SIZE; i++)
+        {
+            if (includesChar[i])
+            {
+                enableChar = (char)i;
+                printf("%c", enableChar);
+            }
+        }
+        printf("\n");
+    }
+
+    return 0;
+}
+
+char *check_args(char *argv, int argc)
+{
+    if(argv == NULL || strcmp(argv, "") == 0 || argc < 2){
+        return " ";
+    }
     if (argc > 2)
     {
         printf("Too many arguments!\n");
         return NULL;
     }
-    else if (argc < 2)
-    {
-        return " ";
-    }
-    else
-    {
-        if ((int)strlen(input) > LINE_LENGTH)
+    else {
+        if ((int)strlen(argv) > LINE_LENGTH)
         {
             printf("Argument is too long!\n");
             return NULL;
         }
-        return input;
+        return argv;
     }
 }
 int main(int argc, char *argv[])
@@ -91,52 +167,5 @@ int main(int argc, char *argv[])
     {
         return EXIT_FAILURE;
     }
-    printf("%s\n", input);
-
-    // Array representing which ascii characters are included in the result
-    bool includesChar[CHAR_SET_SIZE];
-    for (int i = 0; i < CHAR_SET_SIZE; i++)
-    {
-        includesChar[i] = false;
-    }
-
-
-    char temp[100];
-    char result;
-    bool equals;
-
-    while (1)
-    {
-        equals = false;
-        if (fgets(temp, sizeof(temp), stdin) == NULL)
-        {
-            break;
-        }
-
-        // Remove endline at each string
-        temp[strcspn(temp, "\n")] = 0;
-        result = query_next_char(temp, input);
-        if (result != CHAR_MIN)
-        {
-            includesChar[(int)result] = true;
-        }
-        else if (result == CHAR_MAX)
-        {
-            equals = true;
-        }
-        printf("%c\n", result);
-    }
-
-    // kdyz je to jen o jedno pismenko vypsat found: NAZEV
-    char enableChar;
-    printf("Enable: ");
-    for (int i = 0; i < CHAR_SET_SIZE; i++)
-    {
-        if (includesChar[i])
-        {
-            enableChar = (char)i;
-            printf("%c", enableChar);
-        }
-    }
-    printf("\n");
+    output_relay(input);
 }

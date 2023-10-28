@@ -17,5 +17,5 @@ clean:
 ## 	$(CC) $(CFLAGS) keyfilter.c -o keyfilter
 ## 
 test:
-	./test_keyfilter.sh.1
+	./test_keyfilter.sh
 
