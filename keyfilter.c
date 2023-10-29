@@ -1,8 +1,8 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 #include <strings.h>
+#include <stdbool.h>
 
 // CONSTANTS definition
 #define LINE_LENGTH 101
@@ -16,7 +16,7 @@ typedef enum{
     CHECK_FOUND,
     ERROR,
     UNDEFINED
-} Outcome;
+} State;
 
 void string_to_uppercase(char *str)
 {
@@ -27,7 +27,7 @@ void string_to_uppercase(char *str)
     }
 }
 
-int process_address(char address[], char prefix[], char *result, char *cPtr, int *countMatches)
+int process_address(char address[], char prefix[], char *result, char *enableChar, int *countMatches)
 {
     int prefixLength = strlen(prefix);
     int addressLength = strlen(address);
@@ -37,7 +37,7 @@ int process_address(char address[], char prefix[], char *result, char *cPtr, int
         return UNDEFINED;
     }
     if(differenceInLength < 0){
-        *cPtr = 0;
+        *enableChar = 0;
         return NOT_FOUND;
     }
     if(strcmp(prefix, " ") == 0){
@@ -54,11 +54,11 @@ int process_address(char address[], char prefix[], char *result, char *cPtr, int
         }
         if(*countMatches == 1){
             strcpy(result, address);
-            *cPtr = address[prefixLength];
+            *enableChar = address[prefixLength];
             return CHECK_FOUND;
         }
         if(*countMatches > 1){
-            *cPtr = address[prefixLength];
+            *enableChar = address[prefixLength];
             strcpy(result, " ");
             return ENABLE_NEXT;
         }
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     bool includesChar[CHARSET_SIZE] = {false};  // CHARSET_SIZE is set for 128 due to it being made of purely ASCII characters
 
     char result[LINE_LENGTH] = " ";
-    char c = 0;  // Helps enable characters at their given ASCII table index
+    char enableChar = 0;  // Helps enable characters at their given ASCII table index
     int countMatches = 0;
     int outPutCase = ERROR; // Uses enum values for clarity, represents every given outcome used for formatting output
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
             address[strcspn(address, "\n")] = 0;
 
             // sets all desired variables to then later check
-            int tryProcessing = process_address(address, prefix, result, &c, &countMatches);
+            int tryProcessing = process_address(address, prefix, result, &enableChar, &countMatches);
 
             // UNDEFINED is used as an edge scenario no output is needed in that case
             if(tryProcessing != UNDEFINED){
@@ -117,10 +117,10 @@ int main(int argc, char *argv[])
 
             switch(outPutCase){
                 case ENABLE_NEXT:
-                    includesChar[(int)c] = true;
+                    includesChar[(int)enableChar] = true;
                     break;
                 case CHECK_FOUND:
-                    includesChar[(int)c] = true;
+                    includesChar[(int)enableChar] = true;
                     break;
                 case NOT_FOUND:
                     break;
