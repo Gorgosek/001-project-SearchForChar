@@ -1,118 +1,149 @@
 #include <ctype.h>
-#include <limits.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <strings.h>
 
 // CONSTANTS definition
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
+#define LINE_LENGTH 101
+#define CHARSET_SIZE 128
+#define FIRST_PRINTABLE_CHAR_INDEX 32 // Stop printing unwanted characters from the ascii table
 
-#define NUM_OF_LINES 42
-#define LINE_LENGTH 100
+typedef enum{
+    ENABLE_NEXT,
+    FOUND,
+    NOT_FOUND,
+    CHECK_FOUND,
+    ERROR,
+    UNDEFINED
+} Outcome;
 
-char query_next_char(char address[LINE_LENGTH], char *query);
-
-//TODO: Vyresit  redundance and sort shit
-//// MEZERU neresit, Vice Argumentu neresit, Vypisovat vse velkymi pismeny, pocitaji se vsechny znaky z ascii
-//// Optimalizace a refaktorace a upresneni nazvu promennych :)
-/// TODO: CHECK if LINE_LENGTH == 100 or less
-
-int main(int argc, char *argv[])
+void string_to_uppercase(char *str)
 {
-    
-    char *query = "";
-    if(argc > 2)
+    if (str != NULL)
     {
-        printf("Too many arguments!");
-        return EXIT_FAILURE;
+        for (int i = 0; str[i]; i++)
+            str[i] = toupper((unsigned char) str[i]); // Cast type to better prevent Seg fault
     }
-    if(argc == 2){
-        query = argv[1];
-    }
-
-    // VARIABLES
-    char addresses[42][LINE_LENGTH]; // TODO: mb try *adresy[LINE_LENGTH] and then sizeof(blabla)
-    // (void) argv;
-
-    int position = 0;
-
-    while(1)
-    {
-        if(fgets(addresses[position], sizeof(addresses[0]), stdin) == NULL){
-            break;
-        }
-        
-        // Remove endline at each string
-        addresses[position][strcspn(addresses[position], "\n")] = 0;
-
-        position++;
-        printf("%d\n", position);
-    }
-
-    char enable[100];
-    char testOut;
-
-    for(int i = 0; i < position; i++)
-    {
-        testOut = query_next_char(addresses[i], query);
-        if(testOut != 0 && testOut != CHAR_MIN && testOut != CHAR_MAX)
-        {
-            enable[i] = testOut;
-        }
-    }
-    // Finishes the char
-    enable[position] = '\0';
-
-    for(int i = 0; i < position; i++)
-    {
-        printf("%c",enable[i]);
-    }
-        printf("\n");
-
-    //printf("%s\n", query);
-
-    //for(int i = 0; i < position; i++){
-//    if(i < position)
-    //    {
-    //        printf("%d.:%s\n", i, addresses[i]);
-    //    } else {
-    //        break;
-    //    }
-
-    //}
-
-    return EXIT_SUCCESS;
 }
 
+int process_address(char address[], char prefix[], char *result, char *cPtr, int *countMatches)
+{
+    int prefixLength = strlen(prefix);
+    int addressLength = strlen(address);
+    int differenceInLength = addressLength - prefixLength;
 
-    
-
-char query_next_char(char address[LINE_LENGTH], char *query){
-
-    //char solution;
-    int queryLength = (int)strlen(query);
-    int addressLength = (int)strlen(address);
-
-    if(queryLength > addressLength){
-        return CHAR_MAX;
+    if(address == NULL || addressLength < prefixLength){
+        return UNDEFINED;
+    }
+    if(differenceInLength < 0){
+        *cPtr = 0;
+        return NOT_FOUND;
+    }
+    if(strcmp(prefix, " ") == 0){
+        prefixLength = 0;
     }
 
-    bool sameLength = queryLength == addressLength ? true : false;
-    int upperBound = queryLength < addressLength ? (int)queryLength : (int)queryLength-1; 
-
-    for(int i = 0; i <= upperBound; i++)
+    if(strncasecmp(prefix, address, prefixLength) == 0)
     {
-        if(tolower(query[i]) != tolower(address[i]) && (i != 0 && tolower(query[i-1]) == tolower(address[i-1])))
-        {
-            return toupper(address[i]);
+        (*countMatches)++;
+
+        if(prefixLength == addressLength){
+            strcpy(result, address);
+            return FOUND;
+        }
+        if(*countMatches == 1){
+            strcpy(result, address);
+            *cPtr = address[prefixLength];
+            return CHECK_FOUND;
+        }
+        if(*countMatches > 1){
+            *cPtr = address[prefixLength];
+            strcpy(result, " ");
+            return ENABLE_NEXT;
         }
     }
+    return UNDEFINED;
+}
 
-    if(sameLength){
-        return CHAR_MIN;
+char *check_args(char *argv, int argc)
+{
+    if(argv == NULL || strcmp(argv, "") == 0 || argc < 2){
+        return " ";
+    }
+    if (argc > 2){
+        printf("Too many arguments!\n");
+        return NULL;
+    } else {
+        if (strlen(argv) > LINE_LENGTH){
+            printf("Argument is too long!\n");
+            return NULL;
+        }
+        return argv;
+    }
+}
+int main(int argc, char *argv[])
+{
+    // Formatting prefix for easier implementation later
+    char *prefix = check_args(argv[1], argc);
+    if (prefix == NULL){
+        return 1;
     }
 
-    return 0;
+    char address[LINE_LENGTH];
+    bool includesChar[CHARSET_SIZE] = {false};  // CHARSET_SIZE is set for 128 due to it being made of purely ASCII characters
+
+    char result[LINE_LENGTH] = " ";
+    char c = 0;  // Helps enable characters at their given ASCII table index
+    int countMatches = 0;
+    int outPutCase = ERROR; // Uses enum values for clarity, represents every given outcome used for formatting output
+
+    while (1)
+    {
+        // LOADS each line and processes each scenario separately using a switch statement
+        if(fgets(address, sizeof(address), stdin) != NULL && outPutCase != FOUND)
+        {
+            string_to_uppercase(address);
+            // Remove endline at each end of a string
+            address[strcspn(address, "\n")] = 0;
+
+            // sets all desired variables to then later check
+            int tryProcessing = process_address(address, prefix, result, &c, &countMatches);
+
+            // UNDEFINED is used as an edge scenario no output is needed in that case
+            if(tryProcessing != UNDEFINED){
+                outPutCase = tryProcessing;
+            }
+
+            switch(outPutCase){
+                case ENABLE_NEXT:
+                    includesChar[(int)c] = true;
+                    break;
+                case CHECK_FOUND:
+                    includesChar[(int)c] = true;
+                    break;
+                case NOT_FOUND:
+                    break;
+                default:
+            }
+        } else {
+
+            // outPutCase's state determines all the formating
+            if((outPutCase == CHECK_FOUND || outPutCase == FOUND) != 0){
+                printf("Found: %s\n", result);
+
+            } else if(countMatches > 1){
+                printf("Enable: ");
+                for (int i = FIRST_PRINTABLE_CHAR_INDEX; i < CHARSET_SIZE - 1; i++){
+                    if(includesChar[i]){
+                        printf("%c", (char)i);
+                    }
+                }
+                printf("\n");
+
+            } else printf("Not found\n");
+
+            return 0;
+        }
+    }
 }
