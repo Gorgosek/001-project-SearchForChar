@@ -124,7 +124,6 @@ int main(int argc, char *argv[])
                     break;
                 case NOT_FOUND:
                     break;
-                default:
             }
         } else {
 
