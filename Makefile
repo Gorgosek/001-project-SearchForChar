@@ -1,7 +1,7 @@
 CFLAGS = -std=c11 -Wall -Wextra 
 CC = gcc
 TARGET = keyfilter
-SRC = keyfilter2.c
+SRC = keyfilter.c
 OBJS = $(SRC:.c=.o)
 
 all: $(TARGET)
@@ -17,5 +17,5 @@ clean:
 ## 	$(CC) $(CFLAGS) keyfilter.c -o keyfilter
 ## 
 test:
-	./test_keyfilter.sh.1
+	./test_keyfilter.sh
 
