@@ -1,16 +1,10 @@
 #include <ctype.h>
-#include <limits.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <strings.h>
 
 // CONSTANTS definition
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-
-#define NUM_OF_LINES 42
 #define LINE_LENGTH 101
 #define CHARSET_SIZE 128
 #define FIRST_PRINTABLE_CHAR_INDEX 32 // Stop printing unwanted characters from the ascii table
@@ -28,50 +22,43 @@ void string_to_uppercase(char *str)
 {
     if (str != NULL)
     {
-        for (int i = 0; str[i]; i++){
-            str[i] = toupper((unsigned char)str[i]);
-        }
+        for (int i = 0; str[i]; i++)
+            str[i] = toupper((unsigned char) str[i]); // Cast type to better prevent Seg fault
     }
 }
 
-bool are_strings_equal(char address[], char input[])
+int process_address(char address[], char prefix[], char *result, char *cPtr, int *countMatches)
 {
-    bool areEqual = strcmp(input, address) == 0;
-    bool sameLength = strlen(input) == strlen(address) ? true : false;
-
-    return areEqual && sameLength ? true : false;
-}
-
-int process_address(char address[], char input[], char *result, char *cPtr, int *countMatches)
-{
-    if(address == NULL){
-        return ERROR;
-    }
-    int inputLength = strlen(input);
+    int prefixLength = strlen(prefix);
     int addressLength = strlen(address);
-    int differenceInLength = addressLength - inputLength;
+    int differenceInLength = addressLength - prefixLength;
+
+    if(address == NULL || addressLength < prefixLength){
+        return UNDEFINED;
+    }
     if(differenceInLength < 0){
         *cPtr = 0;
         return NOT_FOUND;
-    } else if(strcmp(input, " ") == 0){
-        inputLength = 0;
+    }
+    if(strcmp(prefix, " ") == 0){
+        prefixLength = 0;
     }
 
-    if(strncasecmp(input, address, inputLength) == 0)
+    if(strncasecmp(prefix, address, prefixLength) == 0)
     {
         (*countMatches)++;
 
-        if(inputLength == addressLength){
+        if(prefixLength == addressLength){
             strcpy(result, address);
             return FOUND;
         }
         if(*countMatches == 1){
             strcpy(result, address);
-            *cPtr = address[inputLength];
+            *cPtr = address[prefixLength];
             return CHECK_FOUND;
         }
         if(*countMatches > 1){
-            *cPtr = address[inputLength];
+            *cPtr = address[prefixLength];
             strcpy(result, " ");
             return ENABLE_NEXT;
         }
@@ -84,14 +71,11 @@ char *check_args(char *argv, int argc)
     if(argv == NULL || strcmp(argv, "") == 0 || argc < 2){
         return " ";
     }
-    if (argc > 2)
-    {
+    if (argc > 2){
         printf("Too many arguments!\n");
         return NULL;
-    }
-    else {
-        if ((int)strlen(argv) > LINE_LENGTH)
-        {
+    } else {
+        if (strlen(argv) > LINE_LENGTH){
             printf("Argument is too long!\n");
             return NULL;
         }
@@ -100,49 +84,37 @@ char *check_args(char *argv, int argc)
 }
 int main(int argc, char *argv[])
 {
-    char *input = check_args(argv[1], argc);
-    if (input == NULL)
-    {
-        return EXIT_FAILURE;
+    // Formatting prefix for easier implementation later
+    char *prefix = check_args(argv[1], argc);
+    if (prefix == NULL){
+        return 1;
     }
+
     char address[LINE_LENGTH];
-    bool includesChar[CHARSET_SIZE] = {false};
+    bool includesChar[CHARSET_SIZE] = {false};  // CHARSET_SIZE is set for 128 due to it being made of purely ASCII characters
 
     char result[LINE_LENGTH] = " ";
-    char c = 0;
+    char c = 0;  // Helps enable characters at their given ASCII table index
     int countMatches = 0;
-    int outPutCase = ERROR;
+    int outPutCase = ERROR; // Uses enum values for clarity, represents every given outcome used for formatting output
 
     while (1)
     {
-        //TODO weird return
-        if(fgets(address, sizeof(address), stdin) == NULL || outPutCase == FOUND) {
-            if((outPutCase == CHECK_FOUND || outPutCase == FOUND) != 0){
-                printf("Found: %s\n", result);
-            } else if(countMatches > 1){
-                printf("Enable: ");
-                for (int i = FIRST_PRINTABLE_CHAR_INDEX; i < CHARSET_SIZE - 1; i++)
-                {
-                    if(includesChar[i]){
-                        printf("%c", (char)i);
-                    }
-                }
-                printf("\n");
-            } else{
-                printf("Not found\n") ;
-
-            }
-            return 0;
-        } else {
+        // LOADS each line and processes each scenario separately using a switch statement
+        if(fgets(address, sizeof(address), stdin) != NULL && outPutCase != FOUND)
+        {
             string_to_uppercase(address);
             // Remove endline at each end of a string
             address[strcspn(address, "\n")] = 0;
 
-            int tryProcessing = process_address(address, input, result, &c, &countMatches);
             // sets all desired variables to then later check
+            int tryProcessing = process_address(address, prefix, result, &c, &countMatches);
+
+            // UNDEFINED is used as an edge scenario no output is needed in that case
             if(tryProcessing != UNDEFINED){
                 outPutCase = tryProcessing;
             }
+
             switch(outPutCase){
                 case ENABLE_NEXT:
                     includesChar[(int)c] = true;
@@ -152,9 +124,26 @@ int main(int argc, char *argv[])
                     break;
                 case NOT_FOUND:
                     break;
-                case ERROR:
-                    break;
+                default:
             }
+        } else {
+
+            // outPutCase's state determines all the formating
+            if((outPutCase == CHECK_FOUND || outPutCase == FOUND) != 0){
+                printf("Found: %s\n", result);
+
+            } else if(countMatches > 1){
+                printf("Enable: ");
+                for (int i = FIRST_PRINTABLE_CHAR_INDEX; i < CHARSET_SIZE - 1; i++){
+                    if(includesChar[i]){
+                        printf("%c", (char)i);
+                    }
+                }
+                printf("\n");
+
+            } else printf("Not found\n");
+
+            return 0;
         }
     }
 }
